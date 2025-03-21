@@ -1,7 +1,6 @@
 import torch
 import wandb
 import evaluate
-from jupyterlab.semver import valid
 from torch.utils.data import DataLoader
 from datasets import load_from_disk
 from model import NERBaseModel, MyBERT
@@ -60,7 +59,7 @@ if __name__ == '__main__':
 
     # load dataset from disk
     train_dataset = load_from_disk('conll2003_train_split')
-    valid_dataset = load_from_disk('conll2003_valid_split')
+    valid_dataset = load_from_disk('conll2003_validation_split')
     label_list = train_dataset.features['ner_tags'].feature.names
     num_labels = len(label_list)
 
