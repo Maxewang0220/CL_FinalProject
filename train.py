@@ -63,13 +63,13 @@ if __name__ == '__main__':
     label_list = train_dataset.features['ner_tags'].feature.names
     num_labels = len(label_list)
 
-    train_dataset = train_dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
-    valid_dataset = valid_dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
+    train_dataset = train_dataset.remove_columns(['id', 'tokens', 'pos_tags', 'chunk_tags', 'ner_tags'])
+    valid_dataset = valid_dataset.remove_columns(['id', 'tokens', 'pos_tags', 'chunk_tags', 'ner_tags'])
 
     tokenizer = AutoTokenizer.from_pretrained('roberta-base')
     data_collator = DataCollatorForTokenClassification(tokenizer)
 
-    # 构造 DataLoader
+    # construct DataLoader
     train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True, collate_fn=data_collator)
     valid_loader = DataLoader(valid_dataset, batch_size=16, shuffle=False, collate_fn=data_collator)
 
