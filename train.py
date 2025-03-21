@@ -51,11 +51,12 @@ def evaluate_func(model, dataloader, label_list):
 
 if __name__ == '__main__':
     # training hyperparameters
-    lr = 2e-4
+    lr = 1e-3
     weight_decay = 0.01
-    num_epochs = 3
+    num_epochs = 10
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    print(device)
 
     # load dataset from disk
     train_dataset = load_from_disk('conll2003_train_split')
@@ -84,7 +85,7 @@ if __name__ == '__main__':
     criterion = torch.nn.CrossEntropyLoss(ignore_index=-100)
 
     # Initialize wandb
-    wandb.init(project="CL_FinalProject", name="dependency-parsing", resume=False, config={
+    wandb.init(project="CL_FinalProject", resume=False, config={
         "learning_rate": lr,
         "weight_decay": weight_decay,
         "num_epochs": num_epochs,
@@ -116,7 +117,7 @@ if __name__ == '__main__':
 
             wandb.log({"batch_loss": loss.item(), "avg_loss": avg_loss})
 
-            if i % 100 == 0:
+            if i % 100 == 0 and i > 0:
                 # verify on validation set
                 results = evaluate_func(model, valid_loader, label_list)
                 print(
