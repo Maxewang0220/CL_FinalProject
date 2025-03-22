@@ -8,7 +8,7 @@ from transformers import AutoTokenizer, DataCollatorForTokenClassification
 
 
 # define evaluation function
-def evaluate_func(model, dataloader, label_list):
+def evaluate_func(model, dataloader, label_list, is_CRF=False):
     # use seqeval to evaluate NER
     metric = evaluate.load("seqeval")
 
@@ -22,11 +22,16 @@ def evaluate_func(model, dataloader, label_list):
             input_ids = batch["input_ids"].to(device)
             attention_mask = batch["attention_mask"].to(device)
             labels = batch["labels"].to(device)
-            logits = model(input_ids=input_ids, attention_mask=attention_mask)
 
-            # Shape：(batch_size, seq_length)
-            predictions = torch.argmax(logits, dim=2)
-            predictions = predictions.cpu().numpy()
+            if not is_CRF:
+                # Shape：(batch_size, seq_length)
+                logits = model(input_ids=input_ids, attention_mask=attention_mask)
+                predictions = torch.argmax(logits, dim=2)
+                predictions = predictions.cpu().numpy()
+            else:
+
+                predictions = model(input_ids=input_ids, attention_mask=attention_mask)
+
             labels = labels.cpu().numpy()
 
             # filter paddings
@@ -51,9 +56,10 @@ def evaluate_func(model, dataloader, label_list):
 
 if __name__ == '__main__':
     # training hyperparameters
-    lr = 1e-3
+    lr = 2.5e-4
     weight_decay = 0.01
     num_epochs = 10
+    is_CRF = True
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(device)
@@ -75,7 +81,7 @@ if __name__ == '__main__':
     valid_loader = DataLoader(valid_dataset, batch_size=16, shuffle=False, collate_fn=data_collator)
 
     # baseline model
-    model = NERBaseModel(num_labels=num_labels)
+    model = NERBaseModel(num_labels=num_labels, is_CRF=is_CRF)
     model.to(device)
 
     # filter the frozen parameters
@@ -89,6 +95,7 @@ if __name__ == '__main__':
         "learning_rate": lr,
         "weight_decay": weight_decay,
         "num_epochs": num_epochs,
+        "is_CRF": is_CRF
     })
 
     # training loop
@@ -104,8 +111,15 @@ if __name__ == '__main__':
             attention_mask = batch["attention_mask"].to(device)
             labels = batch["labels"].to(device)
 
-            logits = model(input_ids=input_ids, attention_mask=attention_mask)
-            loss = criterion(logits.view(-1, num_labels), labels.view(-1))
+            if not is_CRF:
+                logits = model(input_ids=input_ids, attention_mask=attention_mask)
+                loss = criterion(logits.view(-1, num_labels), labels.view(-1))
+            else:
+                # Shape: (batch_size, ) 
+                loss_vector = model(input_ids=input_ids, labels = labels, attention_mask=attention_mask)
+                # convert loss vector to scalar
+                loss = loss_vector.mean()
+
             loss.backward()
             optimizer.step()
 
@@ -119,7 +133,7 @@ if __name__ == '__main__':
 
             if i % 100 == 0 and i > 0:
                 # verify on validation set
-                results = evaluate_func(model, valid_loader, label_list)
+                results = evaluate_func(model, valid_loader, label_list, is_CRF=is_CRF)
                 print(
                     f"Precision: {results['overall_precision']:.4f}, Recall: {results['overall_recall']:.4f}, F1: {results['overall_f1']:.4f}")
 
