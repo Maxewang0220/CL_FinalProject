@@ -8,9 +8,10 @@ from transformers import AutoTokenizer, DataCollatorForTokenClassification
 
 
 # define evaluation function
-def evaluate_func(model, dataloader, label_list, is_CRF=False):
+def evaluate_func(model, dataloader, label_list, device='cuda', is_CRF=False):
     # use seqeval to evaluate NER
     metric = evaluate.load("seqeval")
+    device = device
 
     model.eval()
     all_predictions = []
@@ -56,10 +57,10 @@ def evaluate_func(model, dataloader, label_list, is_CRF=False):
 
 if __name__ == '__main__':
     # training hyperparameters
-    lr = 2.5e-4
+    lr = 1e-3
     weight_decay = 0.01
-    num_epochs = 10
-    is_CRF = True
+    num_epochs = 30
+    is_CRF = False
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(device)
