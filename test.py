@@ -3,12 +3,12 @@ from datasets import load_from_disk
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer, DataCollatorForTokenClassification
 from train import evaluate_func
-from model  import NERBaseModel
+from model  import NERBaseModel, MyBERT
 import logging
 
-is_CRF = False
+is_CRF = True
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-model_name =  './ner_base.pth'
+model_name =  './MyBERT_CRF.pth'
 print(device)
 
 # configure logging to file
@@ -33,7 +33,11 @@ data_collator = DataCollatorForTokenClassification(tokenizer)
 # construct DataLoader
 test_loader = DataLoader(test_dataset, batch_size=16, shuffle=True, collate_fn=data_collator)
 
-model = NERBaseModel(num_labels=num_labels, is_CRF=is_CRF)
+if 'MyBERT' in  model_name:
+    model =  MyBERT(num_labels=num_labels, is_CRF=is_CRF)
+else:
+    model = NERBaseModel(num_labels=num_labels, is_CRF=is_CRF)
+
 model.load_state_dict(torch.load(model_name))
 model.to(device)
 

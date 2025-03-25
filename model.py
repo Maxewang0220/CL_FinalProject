@@ -52,7 +52,7 @@ class NERBaseModel(torch.nn.Module):
         return logits
 
 class MyBERT(torch.nn.Module):
-    def __init__(self, num_labels=18, embedding_dim=768, num_heads=12, num_layers=12, max_length=256):
+    def __init__(self, num_labels=18, embedding_dim=768, num_heads=12, num_layers=12, max_length=256, is_CRF=False):
         super(MyBERT, self).__init__()
         
         # use pretrained RoBERTa tokenizer
@@ -70,7 +70,17 @@ class MyBERT(torch.nn.Module):
         # ffn classifer
         self.classifier = torch.nn.Linear(embedding_dim, num_labels)
 
-    def forward(self, input_ids, attention_mask):
+        self.is_CRF=is_CRF
+        if self.is_CRF:
+            # CRF layer
+            self.crf = CRF(num_labels)
+            # 冻结除 classifier 和 crf 以外的所有参数
+            for name, param in self.named_parameters():
+                # 如果参数名称不以 'classifier' 或 'crf' 开头，则冻结该参数
+                if not (name.startswith("classifier") or name.startswith("crf")):
+                    param.requires_grad = False
+
+    def forward(self, input_ids, attention_mask, labels=None):
         # 获取输入序列长度
         seq_length = input_ids.size(1)
         
@@ -79,22 +89,37 @@ class MyBERT(torch.nn.Module):
         position_embeddings = self.position_embeddings[:seq_length, :].unsqueeze(0)
         embeddings = word_embeddings + position_embeddings
         
-        # 转换mask格式 [batch_size, seq_len] -> [seq_len, seq_len]
-        attn_mask = self._create_attention_mask(attention_mask)
-        
         # 通过所有Transformer层
         hidden_states = embeddings
         for layer in self.layers:
-            hidden_states = layer(hidden_states, attn_mask)
+            hidden_states = layer(hidden_states, attention_mask)
         
         # 最终分类层
         logits = self.classifier(hidden_states)
-        return logits
 
-    def _create_attention_mask(self, attention_mask):
-        # 将padding mask转换为attention mask [batch_size, seq_len] -> [batch_size, 1, 1, seq_len]
-        extended_mask = attention_mask[:, None, None, :]
-        return extended_mask.repeat(1, 1, attention_mask.size(-1), 1).float()
+        if self.is_CRF:
+            # construct new labels mask
+            labels_mask = attention_mask.bool() & (labels != -100)
+
+            # 使用 CRF 层进行预测
+            # 训练阶段：使用labels进行概率建模
+            if labels is not None:
+                # 训练阶段：返回负对数似然损失
+                new_labels = labels.clone()
+                new_labels[new_labels == -100] = 0  # 将 -100 替换为合法标签（例如0），以便 CRF 层计算
+                loss = -self.crf(logits, labels=new_labels, mask=labels_mask)
+                return loss
+            else:
+                # 预测阶段：使用 Viterbi 解码得到最优标签序列
+                predictions = self.crf.viterbi_decode(logits, mask=labels_mask)
+                return predictions
+            
+        return logits
+    
+    def reinit_classifier(self):    
+        torch.nn.init.kaiming_uniform_(self.classifier.weight)
+        if self.classifier.bias is not None:
+            torch.nn.init.zeros_(self.classifier.bias)
 
 class TransformerBlock(torch.nn.Module):
     def __init__(self, embedding_dim, num_heads):

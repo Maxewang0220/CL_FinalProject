@@ -57,10 +57,10 @@ def evaluate_func(model, dataloader, label_list, device='cuda', is_CRF=False):
 
 if __name__ == '__main__':
     # training hyperparameters
-    lr = 1e-3
+    lr =  3e-5
     weight_decay = 0.01
     num_epochs = 30
-    is_CRF = False
+    is_CRF = True
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(device)
@@ -82,7 +82,10 @@ if __name__ == '__main__':
     valid_loader = DataLoader(valid_dataset, batch_size=16, shuffle=False, collate_fn=data_collator)
 
     # baseline model
-    model = NERBaseModel(num_labels=num_labels, is_CRF=is_CRF)
+    # model = NERBaseModel(num_labels=num_labels, is_CRF=is_CRF)
+    model = MyBERT(num_labels=num_labels, is_CRF=is_CRF)
+    model.load_state_dict(torch.load('MyBERT_BASE.pth'), strict=False)
+    model.reinit_classifier()
     model.to(device)
 
     # filter the frozen parameters
@@ -144,4 +147,4 @@ if __name__ == '__main__':
     wandb.finish()
 
     # save model
-    torch.save(model.state_dict(), 'ner_base_model.pth')
+    torch.save(model.state_dict(), 'MyBERT_CRF.pth')
