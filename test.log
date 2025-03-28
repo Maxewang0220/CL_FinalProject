@@ -3,3 +3,8 @@
 2025-03-23 13:06:31 [INFO] Model Name:./ner_base.pth, precision: 0.8033, Recall: 0.8465, F1: 0.8243
 2025-03-24 08:53:03 [INFO] Model Name:./MyBERT_BASE.pth, precision: 0.6318, Recall: 0.6608, F1: 0.6460
 2025-03-24 16:17:15 [INFO] Model Name:./MyBERT_CRF.pth, precision: 0.6416, Recall: 0.6349, F1: 0.6382
+2025-03-28 21:10:06 [INFO] Model Name:./BERT_BASE.pth, precision: 0.8128, Recall: 0.8369, F1: 0.8247
+2025-03-28 21:12:54 [INFO] Model Name:./BERT_BASE.pth, precision: 0.8128, Recall: 0.8369, F1: 0.8247
+2025-03-28 21:16:09 [INFO] Model Name:./MyBERT_BASE.pth, precision: 0.6318, Recall: 0.6608, F1: 0.6460
+2025-03-28 21:21:41 [INFO] Model Name:./MyBERT_CRF.pth, precision: 0.6416, Recall: 0.6349, F1: 0.6382
+2025-03-28 21:25:20 [INFO] Model Name:./BERT_CRF.pth, precision: 0.8415, Recall: 0.7964, F1: 0.8183

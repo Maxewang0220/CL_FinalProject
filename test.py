@@ -69,7 +69,7 @@ def error_analysis(model, dataloader, label_list, device='cuda', is_CRF=False):
 
 is_CRF = True
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-model_name = './MyBERT_CRF.pth'
+model_name = './BERT_CRF.pth'
 print(device)
 
 # configure logging to file
@@ -116,4 +116,4 @@ for label, error_analysis_result in error_analysis_results.items():
     print(f"Label: {label}, Total: {error_analysis_result['total']}, Errors: {error_analysis_result['errors']}, "
           f"Error Ratio: {error_analysis_result['error_ratio']:.4f}, Most Common Error: {error_analysis_result['most_common_error']}")
 
-    print(f"Error Details:{error_analysis_results['error_details']}")
+    print(f"Error Details:{error_analysis_result['error_details']}")
