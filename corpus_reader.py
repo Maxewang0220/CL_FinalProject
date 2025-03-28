@@ -2,6 +2,7 @@ import datasets
 from datasets import load_from_disk
 from transformers import AutoTokenizer
 
+
 def load_dataset(dataset_name: str, tokenizer, split='train') -> datasets.Dataset:
     dataset = datasets.load_dataset(dataset_name,
                                     split=split,
@@ -40,12 +41,14 @@ def load_dataset(dataset_name: str, tokenizer, split='train') -> datasets.Datase
 
     return tokenized_dataset
 
+
 if __name__ == '__main__':
     # dataset = load_from_disk('conll2003_train_split')
     # print(dataset.features['ner_tags'].feature)
 
-    dataset = load_dataset('eriktks/conll2003', AutoTokenizer.from_pretrained('roberta-base', use_fast=True, add_prefix_space=True), split='test')
-    # for i in range(5):
-    #     example = dataset[i]
-    #     print(example)
-
+    dataset = load_dataset('eriktks/conll2003',
+                           AutoTokenizer.from_pretrained('roberta-base', use_fast=True, add_prefix_space=True),
+                           split='test')
+    for i in range(5):
+        example = dataset[i]
+        print(example)

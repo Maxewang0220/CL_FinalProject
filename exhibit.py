@@ -1,11 +1,11 @@
 import torch
 from datasets import load_from_disk
-from model import  NERBaseModel, MyBERT
+from model import NERBaseModel, MyBERT
 from transformers import AutoTokenizer
 
 is_CRF = False
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-model_name =  './BERT_BASE.pth'
+model_name = './BERT_BASE.pth'
 print(device)
 
 raw_test_dataset = load_from_disk('conll2003_test_split')
@@ -15,7 +15,7 @@ num_labels = len(label_list)
 # raw_test_dataset 中包含 'tokens' 和 'ner_tags'
 # label_list 已经定义好
 
-if 'MyBERT' in  model_name:
+if 'MyBERT' in model_name:
     model = MyBERT(num_labels=num_labels, is_CRF=is_CRF)
 else:
     model = NERBaseModel(num_labels=num_labels, is_CRF=is_CRF)
@@ -36,7 +36,7 @@ for example in raw_test_dataset:
     # 使用 fast tokenizer 进行 tokenization，并保持原始单词与tokenize后结果的对应（例如使用 is_split_into_words=True）
     encoding = tokenizer(tokens, is_split_into_words=True, return_offsets_mapping=True, truncation=True)
     input_ids = encoding['input_ids']
-    
+
     # 构造 tensor，并移动到 device
     input_ids_tensor = torch.tensor([input_ids]).to(device)
     # attention_mask 由 tokenizer 自动生成（注意形状为 [1, seq_len]）
@@ -51,7 +51,7 @@ for example in raw_test_dataset:
     else:
         logits = outputs
         pred_tags_ids = torch.argmax(logits, dim=2)[0]
-    
+
     print(pred_tags_ids)
 
     # 将预测的标签id转换为标签名称（注意可能需要考虑 tokenization带来的word-piece情况）
@@ -60,7 +60,7 @@ for example in raw_test_dataset:
     pred_tags = []
     previous_word_idx = None
 
-    print(f"Example {shown+1}") 
+    print(f"Example {shown + 1}")
     print(f"{'Word':<15}{'NER tag':<15}{'Label':<15}")
 
     for idx, word_idx in enumerate(word_ids):
@@ -71,9 +71,9 @@ for example in raw_test_dataset:
             previous_word_idx = word_idx
             word = example["tokens"][word_idx]
             NER_tag = label_list[pred_tags_ids[idx]]
-            label = label_list[example["ner_tags"][word_idx] ]
+            label = label_list[example["ner_tags"][word_idx]]
             print(f"{word:<15}{NER_tag:<15}{label:<15}")
-    
+
     shown += 1
     if shown >= num_examples_to_show:
         break
