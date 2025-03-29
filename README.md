@@ -24,7 +24,7 @@ transformers: 4.24.0
 A pre-trained `BERT_BASE` model is provided as an example.
 
 To download the model, you can visit this
-link: https://drive.google.com/file/d/1JAmGCwQEF4_rkxn9KdA16fLe7P6EgNiV/view?usp=drive_link
+link: https://drive.google.com/file/d/1U6B_4gp8RJ4-G1uuKcoUr3UEtzv5fpKp/view?usp=sharing
 
 To train the model, you should initialize the corresponding model and modify is_CRF attribute and the model path in
 `train.py` to the path of the downloaded model, then run the `train.py` script.
