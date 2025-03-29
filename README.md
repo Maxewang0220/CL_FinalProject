@@ -1,5 +1,7 @@
 # README
 
+The complete code for the project can be found in https://github.com/Maxewang0220/CL_FinalProject.
+
 ## Directory structure
 
 .
@@ -14,10 +16,10 @@
 
 ## Versions
 
-Python: 3.9
-torch: 2.6.0
-datasets: 3.1.0
-transformers: 4.24.0
+- Python: 3.9
+- torch: 2.6.0
+- datasets: 3.1.0
+- transformers: 4.24.0
 
 ## Instructions for running
 
@@ -26,7 +28,7 @@ A pre-trained `BERT_BASE` model is provided as an example.
 To download the model, you can visit this
 link: https://drive.google.com/file/d/1U6B_4gp8RJ4-G1uuKcoUr3UEtzv5fpKp/view?usp=sharing
 
-To train the model, you should initialize the corresponding model and modify is_CRF attribute and the model path in
+To train the model, you should initialize the corresponding model and modify `is_CRF` attribute and the model path in
 `train.py` to the path of the downloaded model, then run the `train.py` script.
 
 To test the model, you should modify `is_CRF` and `model_name` in `test.py` to the path of the downloaded model, then
