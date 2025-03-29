@@ -2,6 +2,7 @@ import torch
 from transformers import RobertaModel
 from TorchCRF import CRF
 
+
 # baseline model
 class NERBaseModel(torch.nn.Module):
     def __init__(self, num_labels=18, is_CRF=False):
@@ -36,124 +37,116 @@ class NERBaseModel(torch.nn.Module):
             # construct new labels mask
             labels_mask = attention_mask.bool() & (labels != -100)
 
-            # 使用 CRF 层进行预测
-            # 训练阶段：使用labels进行概率建模
+            # use CRF layer for prediction
+            # training stage: use labels for probability modeling
             if labels is not None:
-                # 训练阶段：返回负对数似然损失
+                # training stage: return negative log likelihood loss
                 new_labels = labels.clone()
-                new_labels[new_labels == -100] = 0  # 将 -100 替换为合法标签（例如0），以便 CRF 层计算
+                new_labels[new_labels == -100] = 0  # replace -100 with legal label 0 for CRF layer calculation
                 loss = -self.crf(logits, labels=new_labels, mask=labels_mask)
                 return loss
             else:
-                # 预测阶段：使用 Viterbi 解码得到最优标签序列
+                # prediction stage: use Viterbi decoding to get the optimal label sequence
                 predictions = self.crf.viterbi_decode(logits, mask=labels_mask)
                 return predictions
 
         return logits
 
+
 class MyBERT(torch.nn.Module):
     def __init__(self, num_labels=18, embedding_dim=768, num_heads=12, num_layers=12, max_length=256, is_CRF=False):
         super(MyBERT, self).__init__()
-        
+
         # use pretrained RoBERTa tokenizer
         self.word_embeddings = torch.nn.Embedding(50265, embedding_dim)
-        
+
         # position embedding 
         self.position_embeddings = torch.nn.Parameter(torch.randn(max_length, embedding_dim))
-        
+
         # transfortmer block
         self.layers = torch.nn.ModuleList([
             TransformerBlock(embedding_dim, num_heads)
             for _ in range(num_layers)
         ])
-        
+
         # ffn classifer
         self.classifier = torch.nn.Linear(embedding_dim, num_labels)
 
-        self.is_CRF=is_CRF
+        self.is_CRF = is_CRF
         if self.is_CRF:
             # CRF layer
             self.crf = CRF(num_labels)
-            # 冻结除 classifier 和 crf 以外的所有参数
+            # froze all parameters except 'classifier' and 'crf'
             for name, param in self.named_parameters():
-                # 如果参数名称不以 'classifier' 或 'crf' 开头，则冻结该参数
                 if not (name.startswith("classifier") or name.startswith("crf")):
                     param.requires_grad = False
 
     def forward(self, input_ids, attention_mask, labels=None):
-        # 获取输入序列长度
+        # acquire the length of input sequence
         seq_length = input_ids.size(1)
-        
-        # 词嵌入 + 位置嵌入
+
+        # word embedding + position embedding
         word_embeddings = self.word_embeddings(input_ids)
         position_embeddings = self.position_embeddings[:seq_length, :].unsqueeze(0)
         embeddings = word_embeddings + position_embeddings
-        
-        # 通过所有Transformer层
+
         hidden_states = embeddings
         for layer in self.layers:
             hidden_states = layer(hidden_states, attention_mask)
-        
-        # 最终分类层
+
         logits = self.classifier(hidden_states)
 
         if self.is_CRF:
             # construct new labels mask
             labels_mask = attention_mask.bool() & (labels != -100)
 
-            # 使用 CRF 层进行预测
-            # 训练阶段：使用labels进行概率建模
             if labels is not None:
-                # 训练阶段：返回负对数似然损失
                 new_labels = labels.clone()
-                new_labels[new_labels == -100] = 0  # 将 -100 替换为合法标签（例如0），以便 CRF 层计算
+                new_labels[new_labels == -100] = 0
                 loss = -self.crf(logits, labels=new_labels, mask=labels_mask)
                 return loss
             else:
-                # 预测阶段：使用 Viterbi 解码得到最优标签序列
                 predictions = self.crf.viterbi_decode(logits, mask=labels_mask)
                 return predictions
-            
+
         return logits
-    
-    def reinit_classifier(self):    
+
+    def reinit_classifier(self):
         torch.nn.init.kaiming_uniform_(self.classifier.weight)
         if self.classifier.bias is not None:
             torch.nn.init.zeros_(self.classifier.bias)
 
+
 class TransformerBlock(torch.nn.Module):
     def __init__(self, embedding_dim, num_heads):
         super().__init__()
-        
-        # 多头注意力机制
+
+        # multi-head attention
         self.attention = torch.nn.MultiheadAttention(embedding_dim, num_heads, batch_first=True)
-        
-        # 前馈网络
+
+        # feed forward network
         self.ffn = torch.nn.Sequential(
-            torch.nn.Linear(embedding_dim, 4*embedding_dim),
+            torch.nn.Linear(embedding_dim, 4 * embedding_dim),
             torch.nn.GELU(),
-            torch.nn.Linear(4*embedding_dim, embedding_dim)
+            torch.nn.Linear(4 * embedding_dim, embedding_dim)
         )
-        
+
         # Layer norm
         self.norm1 = torch.nn.LayerNorm(embedding_dim)
         self.norm2 = torch.nn.LayerNorm(embedding_dim)
         self.dropout = torch.nn.Dropout(0.1)
 
     def forward(self, x, attention_mask):
-        # === 修改点1：先进行层归一化 ===
-        # Pre-LN结构：LayerNorm -> Attention -> Residual
+        # Pre-LayerNorm: LayerNorm -> Attention -> Residual
         attn_output, _ = self.attention(
-            query=self.norm1(x),  # 归一化在attention之前
+            query=self.norm1(x),
             key=self.norm1(x),
             value=self.norm1(x),
             key_padding_mask=(attention_mask == 0).squeeze(1)
         )
-        x = x + self.dropout(attn_output)  # 残差连接原始输入
-        
-        # === 修改点2：前馈网络也使用Pre-LN ===
-        # Pre-LN结构：LayerNorm -> FFN -> Residual
-        ffn_output = self.ffn(self.norm2(x))  # 归一化在FFN之前
-        x = x + self.dropout(ffn_output)  # 残差连接原始输入
-        
+        x = x + self.dropout(attn_output)  # residual connection
+
+        ffn_output = self.ffn(self.norm2(x))
+        x = x + self.dropout(ffn_output)
+
         return x

@@ -7,11 +7,12 @@ from model import NERBaseModel, MyBERT
 import logging
 
 
-# 新增错误分析函数，统计各标签的错误比例及常见错误预测
+# error analysis function
+# count the error ratio and most common error prediction for each label
 def error_analysis(model, dataloader, label_list, device='cuda', is_CRF=False):
-    # 用于统计每个标签的总出现次数
+    # count the total number of each label
     total_counts = {label: 0 for label in label_list}
-    # 用于统计错误预测，key 为真实标签，value 为字典：{预测标签: 次数}
+    # count error predictions, key: true label, value: {predicted label: count}
     error_counts = {label: {} for label in label_list}
 
     model.eval()
@@ -30,9 +31,10 @@ def error_analysis(model, dataloader, label_list, device='cuda', is_CRF=False):
 
             labels = labels.cpu().numpy()
 
-            # 遍历每个 token（跳过 padding 部分）
+            # traverse each token
             for pred_seq, label_seq in zip(predictions, labels):
                 for p, l in zip(pred_seq, label_seq):
+                    # ignore paddings
                     if l == -100:
                         continue
                     true_label = label_list[l]
@@ -41,7 +43,7 @@ def error_analysis(model, dataloader, label_list, device='cuda', is_CRF=False):
                     if true_label != pred_label:
                         error_counts[true_label][pred_label] = error_counts[true_label].get(pred_label, 0) + 1
 
-    # 分析每个标签的错误比例及最常见的错误预测
+    # analyze the error ratio and most common error prediction for each label
     error_analysis_results = {}
     max_error_ratio = 0.0
     label_with_max_error = None
